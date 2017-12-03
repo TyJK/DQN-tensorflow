@@ -5,6 +5,7 @@ import random
 import numpy as np
 from tqdm import tqdm
 import tensorflow as tf
+from functools import reduce
 
 from .base import BaseModel
 from .history import History
@@ -220,11 +221,11 @@ class Agent(BaseModel):
         self.l4, self.w['l4_w'], self.w['l4_b'] = linear(self.l3_flat, 512, activation_fn=activation_fn, name='l4')
         self.q, self.w['q_w'], self.w['q_b'] = linear(self.l4, self.env.action_size, name='q')
 
-      self.q_action = tf.argmax(self.q, dimension=1)
+      self.q_action = tf.argmax(self.q, axis=1)
 
       q_summary = []
       avg_q = tf.reduce_mean(self.q, 0)
-      for idx in xrange(self.env.action_size):
+      for idx in range(self.env.action_size):
         q_summary.append(tf.summary.histogram('q/%s' % idx, avg_q[idx]))
       self.q_summary = tf.summary.merge(q_summary, 'q_summary')
 
@@ -323,9 +324,9 @@ class Agent(BaseModel):
 
       self.writer = tf.summary.FileWriter('./logs/%s' % self.model_dir, self.sess.graph)
 
-    tf.initialize_all_variables().run()
+    tf.global_variables_initializer().run()
 
-    self._saver = tf.train.Saver(self.w.values() + [self.step_op], max_to_keep=30)
+    self._saver = tf.train.Saver(list(self.w.values()) + [self.step_op], max_to_keep=30)
 
     self.load_model()
     self.update_target_q_network()
@@ -373,7 +374,7 @@ class Agent(BaseModel):
       self.env.env.monitor.start(gym_dir)
 
     best_reward, best_idx = 0, 0
-    for idx in xrange(n_episode):
+    for idx in range(n_episode):
       screen, reward, action, terminal = self.env.new_random_game()
       current_reward = 0
 
